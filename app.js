@@ -1,3 +1,5 @@
+var format = require("date-fns/format");
+
 const express = require("express");
 const path = require("path");
 
@@ -13,7 +15,7 @@ let db = null;
 
 const initializeDBAndServer = async () => {
   try {
-    db = open({
+    db = await open({
       filename: dbPath,
       driver: sqlite3.Database,
     });
@@ -33,13 +35,32 @@ initializeDBAndServer();
 
 const hasPriorityAndStatusProperties = (requestQuery) => {
   return (
-    requestQuery.priority === undefined && requestQuery.status === undefined
+    requestQuery.priority !== undefined && requestQuery.status !== undefined
+  );
+};
+const hasStatusProperty = (requestQuery) => {
+  return requestQuery.status !== undefined;
+};
+const hasPriorityProperty = (requestQuery) => {
+  return requestQuery.priority !== undefined;
+};
+const hasCategoryAndStatusProperties = (requestQuery) => {
+  return (
+    requestQuery.category !== undefined && requestQuery.status !== undefined
+  );
+};
+const hasCategoryProperty = (requestQuery) => {
+  return requestQuery.category !== undefined;
+};
+const hasCategoryAndPriorityProperties = (requestQuery) => {
+  return (
+    requestQuery.priority !== undefined && requestQuery.category !== undefined
   );
 };
 
 app.get("/todos/", async (request, response) => {
   let data = null;
-  const getTodosQuery = "";
+  let getTodosQuery = "";
   const { search_q = "", priority, status, category } = request.query;
 
   switch (true) {
@@ -50,7 +71,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND priority = '${priority}'
                 AND status = '${status}';`;
       break;
@@ -61,7 +82,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND status = '${status}';`;
       break;
     case hasPriorityProperty(request.query):
@@ -71,7 +92,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND priority = '${priority}'`;
       break;
     case hasCategoryAndStatusProperties(request.query):
@@ -81,7 +102,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND category = '${category}'
                 AND status = '${status}';`;
       break;
@@ -92,7 +113,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND category = '${category}';`;
       break;
     case hasCategoryAndPriorityProperties(request.query):
@@ -102,7 +123,7 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'
+                todo LIKE '%${search_q}%'
                 AND priority = '${priority}'
                 AND category = '${category}';`;
       break;
@@ -113,10 +134,112 @@ app.get("/todos/", async (request, response) => {
             FROM 
                 todo
             WHERE
-                search_q LIKE '%${search_q}%'`;
+                todo LIKE '%${search_q}%'`;
       break;
   }
 
-  data = await db.get(getTodosQuery);
+  data = await db.all(getTodosQuery);
   response.send(data);
+});
+
+//API 2
+
+app.get("/todos/:todoId", async (request, response) => {
+  const { todoId } = request.params;
+
+  const getTodoQuery = `
+    SELECT * FROM todo WHERE id = '${todoId}';`;
+
+  const todo = await db.get(getTodoQuery);
+  response.send(todo);
+});
+
+//API 3
+
+app.get("/agenda", async (request, response) => {
+  let { date } = request.query;
+  date = format(new Date(date), "yyyy-MM-dd");
+  //   date = date.toString();
+  //   console.log(date);
+  const getTodoOfDateQuery = `
+    SELECT * FROM todo WHERE due_date = '${date}';`;
+
+  const dateTodo = await db.get(getTodoOfDateQuery);
+  response.send(dateTodo);
+});
+
+//API 4
+
+app.post("/todos", async (request, response) => {
+  const { id, todo, priority, status, category, dueDate } = request.body;
+
+  const postTodoQuery = `
+    INSERT INTO 
+        todo(id, todo, priority, status, category, due_date)
+    VALUES
+        (
+            '${id}',
+            '${todo}',
+            '${priority}',
+            '${status}',
+            '${category}',
+            '${dueDate}'
+        );`;
+
+  await db.run(postTodoQuery);
+  response.send("Todo Successfully Added");
+});
+
+//API 5
+
+app.put("/todos/:todoId", async (request, response) => {
+  const { todoId } = request.params;
+  let updateColumn = "";
+  const requestBody = request.body;
+
+  switch (true) {
+    case requestBody.status !== undefined:
+      updateColumn = "Status";
+      break;
+    case requestBody.priority !== undefined:
+      updateColumn = "Priority";
+      break;
+    case requestBody.todo !== undefined:
+      updateColumn = "Todo";
+      break;
+    case requestBody.category !== undefined:
+      updateColumn = "Category";
+      break;
+    case requestBody.dueDate !== undefined:
+      updateColumn = "Due Date";
+      break;
+  }
+
+  const previousTodoQuery = `
+  SELECT * FROM todo WHERE id = ${todoId};`;
+
+  const previousTodo = await db.get(previousTodoQuery);
+
+  const {
+    todo = previousTodo.todo,
+    priority = previousTodo.priority,
+    status = previousTodo.status,
+    category = previousTodo.category,
+    dueDate = previousTodo.due_date,
+  } = request.body;
+
+  const updateTodoQuery = `
+  UPDATE
+    todo
+  SET 
+    todo = '${todo}',
+    priority = '${priority},
+    status = '${status},
+    category = '${category},
+    due_date = '${dueDate}'
+  WHERE 
+    id = ${todoId};`;
+
+  await db.run(updateTodoQuery);
+  response.send(`${updateColumn} Updated`);
 });
