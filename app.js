@@ -164,7 +164,7 @@ app.get("/agenda", async (request, response) => {
   const getTodoOfDateQuery = `
     SELECT * FROM todo WHERE due_date = '${date}';`;
 
-  const dateTodo = await db.get(getTodoOfDateQuery);
+  const dateTodo = await db.all(getTodoOfDateQuery);
   response.send(dateTodo);
 });
 
@@ -233,9 +233,9 @@ app.put("/todos/:todoId", async (request, response) => {
     todo
   SET 
     todo = '${todo}',
-    priority = '${priority},
-    status = '${status},
-    category = '${category},
+    priority = '${priority}',
+    status = '${status}',
+    category = '${category}',
     due_date = '${dueDate}'
   WHERE 
     id = ${todoId};`;
@@ -243,3 +243,5 @@ app.put("/todos/:todoId", async (request, response) => {
   await db.run(updateTodoQuery);
   response.send(`${updateColumn} Updated`);
 });
+
+module.exports = app;
