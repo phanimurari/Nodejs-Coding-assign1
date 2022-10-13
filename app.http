@@ -1,6 +1,6 @@
 //API 1
 //Scenerio 1
-GET http://localhost:3000/todos/?status=TO%20DO
+GET http://localhost:3000/todos/?status=TO%20DO12
 ###
 
 //Scenerio 2
@@ -94,3 +94,9 @@ Content-Type: application/json
 {
   "dueDate": "2021-01-12"
 }
+###
+
+//API 6
+
+DELETE http://localhost:3000/todos/5
+###
