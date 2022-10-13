@@ -62,7 +62,7 @@ app.get("/todos/", async (request, response) => {
   let data = null;
   let getTodosQuery = "";
   const { search_q = "", priority, status, category } = request.query;
-
+  getColumn = "";
   switch (true) {
     case hasPriorityAndStatusProperties(request.query):
       getTodosQuery = `
@@ -84,6 +84,7 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND status = '${status}';`;
+      getColumn = "Status";
       break;
     case hasPriorityProperty(request.query):
       getTodosQuery = `
@@ -94,6 +95,7 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND priority = '${priority}'`;
+      getColumn = "Priority";
       break;
     case hasCategoryAndStatusProperties(request.query):
       getTodosQuery = `
@@ -115,6 +117,7 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND category = '${category}';`;
+      getColumn = "Category";
       break;
     case hasCategoryAndPriorityProperties(request.query):
       getTodosQuery = `
@@ -139,7 +142,12 @@ app.get("/todos/", async (request, response) => {
   }
 
   data = await db.all(getTodosQuery);
-  response.send(data);
+  if (data !== undefined) {
+    response.send(data);
+  } else {
+    response.status(400);
+    response.send(`Invalid Todo ${getColumn}`);
+  }
 });
 
 //API 2
@@ -156,7 +164,7 @@ app.get("/todos/:todoId", async (request, response) => {
 
 //API 3
 
-app.get("/agenda", async (request, response) => {
+app.get("/agenda/", async (request, response) => {
   let { date } = request.query;
   date = format(new Date(date), "yyyy-MM-dd");
   //   date = date.toString();
@@ -165,7 +173,11 @@ app.get("/agenda", async (request, response) => {
     SELECT * FROM todo WHERE due_date = '${date}';`;
 
   const dateTodo = await db.all(getTodoOfDateQuery);
-  response.send(dateTodo);
+  if (dateTodo !== undefined) {
+    response.send(dateTodo);
+  } else {
+    response.send("Invalid Due Date");
+  }
 });
 
 //API 4
@@ -192,7 +204,7 @@ app.post("/todos", async (request, response) => {
 
 //API 5
 
-app.put("/todos/:todoId", async (request, response) => {
+app.put("/todos/:todoId/", async (request, response) => {
   const { todoId } = request.params;
   let updateColumn = "";
   const requestBody = request.body;
@@ -216,7 +228,12 @@ app.put("/todos/:todoId", async (request, response) => {
   }
 
   const previousTodoQuery = `
-  SELECT * FROM todo WHERE id = ${todoId};`;
+    SELECT
+      *
+    FROM
+      todo
+    WHERE
+      id = ${todoId};`;
 
   const previousTodo = await db.get(previousTodoQuery);
 
@@ -229,19 +246,34 @@ app.put("/todos/:todoId", async (request, response) => {
   } = request.body;
 
   const updateTodoQuery = `
-  UPDATE
-    todo
-  SET 
-    todo = '${todo}',
-    priority = '${priority}',
-    status = '${status}',
-    category = '${category}',
-    due_date = '${dueDate}'
-  WHERE 
-    id = ${todoId};`;
+    UPDATE
+        todo
+    SET 
+        todo = '${todo}',
+        priority = '${priority}',
+        status = '${status}',
+        category = '${category}',
+        due_date = '${dueDate}'
+    WHERE 
+        id = ${todoId};`;
 
   await db.run(updateTodoQuery);
   response.send(`${updateColumn} Updated`);
+});
+
+//API 6
+
+app.delete("/todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
+
+  const deleteTodoQuery = `
+    DELETE FROM 
+        todo
+    WHERE 
+        id = ${todoId};`;
+
+  await db.run(deleteTodoQuery);
+  response.send("Todo Deleted");
 });
 
 module.exports = app;
