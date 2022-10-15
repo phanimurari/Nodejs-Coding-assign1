@@ -33,6 +33,16 @@ initializeDBAndServer();
 
 //API 1
 
+const validStatus = (status) => {
+  if (status === "TO DO" || status === "IN PROGRESS" || status === "DONE") {
+    return true;
+    console.log("Its valid status");
+  } else {
+    return false;
+    console.log("Its invalid status");
+  }
+};
+
 const hasPriorityAndStatusProperties = (requestQuery) => {
   return (
     requestQuery.priority !== undefined && requestQuery.status !== undefined
@@ -59,10 +69,10 @@ const hasCategoryAndPriorityProperties = (requestQuery) => {
 };
 
 app.get("/todos/", async (request, response) => {
-  let data = null;
   let getTodosQuery = "";
   const { search_q = "", priority, status, category } = request.query;
-  getColumn = "";
+  let getColumn = "";
+  let validValuesEntered;
   switch (true) {
     case hasPriorityAndStatusProperties(request.query):
       getTodosQuery = `
@@ -76,7 +86,8 @@ app.get("/todos/", async (request, response) => {
                 AND status = '${status}';`;
       break;
     case hasStatusProperty(request.query):
-      getTodosQuery = `
+      if (validStatus === true) {
+        getTodosQuery = `
             SELECT
                 *
             FROM 
@@ -84,7 +95,11 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND status = '${status}';`;
-      getColumn = "Status";
+        validValuesEntered = true;
+      } else if (validStatus === false) {
+        getColumn = "Status";
+        validValuesEntered = false;
+      }
       break;
     case hasPriorityProperty(request.query):
       getTodosQuery = `
@@ -141,10 +156,10 @@ app.get("/todos/", async (request, response) => {
       break;
   }
 
-  data = await db.all(getTodosQuery);
-  if (data !== undefined) {
+  if (validValuesEntered === true) {
+    const data = await db.all(getTodosQuery);
     response.send(data);
-  } else {
+  } else if (validValuesEntered === false) {
     response.status(400);
     response.send(`Invalid Todo ${getColumn}`);
   }
