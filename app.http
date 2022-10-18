@@ -1,6 +1,6 @@
 //API 1
 //Scenerio 1
-GET http://localhost:3000/todos/?status=TO%20DOhh
+GET http://localhost:3000/todos/?status=TO%20DO
 ###
 
 //Scenerio 2
@@ -26,6 +26,7 @@ GET http://localhost:3000/todos/?category=HOME
 //Scenerio 7
 GET http://localhost:3000/todos/?category=LEARNING&priority=HIGH
 ###
+
 
 //API 2
 
