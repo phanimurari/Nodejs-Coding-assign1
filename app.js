@@ -31,15 +31,74 @@ const initializeDBAndServer = async () => {
 
 initializeDBAndServer();
 
-//API 1
+let invalid_column = "";
 
 const validStatus = (status) => {
   if (status === "TO DO" || status === "IN PROGRESS" || status === "DONE") {
     return true;
-    console.log("Its valid status");
   } else {
+    invalid_column = "Status";
     return false;
-    console.log("Its invalid status");
+  }
+};
+
+const validPriority = (priority) => {
+  if (priority === "HIGH" || priority === "MEDIUM" || priority === "LOW") {
+    return true;
+  } else {
+    invalid_column = "Priority";
+    return false;
+  }
+};
+
+const validCategory = (category) => {
+  if (category === "WORK" || category === "HOME" || category === "LEARNING") {
+    return true;
+  } else {
+    invalid_column = "Category";
+    return false;
+  }
+};
+
+const validPriorityAndStatus = (priority, status) => {
+  if (validPriority(priority) === true) {
+    if (validStatus(status) === true) {
+      return true;
+    } else {
+      invalid_column = "Status";
+      return false;
+    }
+  } else {
+    invalid_column = "Priority";
+    return false;
+  }
+};
+
+const validCategoryAndStatus = (priority, status) => {
+  if (validCategory(category) === true) {
+    if (validStatus(status) === true) {
+      return true;
+    } else {
+      invalid_column = "Status";
+      return false;
+    }
+  } else {
+    invalid_column = "Category";
+    return false;
+  }
+};
+
+const validCategoryAndPriority = (priority, category) => {
+  if (validCategory(category) === true) {
+    if (validPriority(priority) === true) {
+      return true;
+    } else {
+      invalid_column = "Priority";
+      return false;
+    }
+  } else {
+    invalid_column = "Category";
+    return false;
   }
 };
 
@@ -68,14 +127,27 @@ const hasCategoryAndPriorityProperties = (requestQuery) => {
   );
 };
 
+//API 1
+
+const convertDbObjToResObj = (dbObj) => {
+  return {
+    id: dbObj.id,
+    todo: dbObj.todo,
+    priority: dbObj.priority,
+    status: dbObj.status,
+    category: dbObj.category,
+    dueDate: dbObj.due_date,
+  };
+};
+
 app.get("/todos/", async (request, response) => {
   let getTodosQuery = "";
   const { search_q = "", priority, status, category } = request.query;
-  let getColumn = "";
   let validValuesEntered;
   switch (true) {
     case hasPriorityAndStatusProperties(request.query):
-      getTodosQuery = `
+      if (validPriorityAndStatus(priority, status) === true) {
+        getTodosQuery = `
             SELECT
                 *
             FROM 
@@ -84,9 +156,13 @@ app.get("/todos/", async (request, response) => {
                 todo LIKE '%${search_q}%'
                 AND priority = '${priority}'
                 AND status = '${status}';`;
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
     case hasStatusProperty(request.query):
-      if (validStatus === true) {
+      if (validStatus(status) === true) {
         getTodosQuery = `
             SELECT
                 *
@@ -96,13 +172,13 @@ app.get("/todos/", async (request, response) => {
                 todo LIKE '%${search_q}%'
                 AND status = '${status}';`;
         validValuesEntered = true;
-      } else if (validStatus === false) {
-        getColumn = "Status";
+      } else {
         validValuesEntered = false;
       }
       break;
     case hasPriorityProperty(request.query):
-      getTodosQuery = `
+      if (validPriority(priority) === true) {
+        getTodosQuery = `
             SELECT
                 *
             FROM 
@@ -110,21 +186,30 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND priority = '${priority}'`;
-      getColumn = "Priority";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
     case hasCategoryAndStatusProperties(request.query):
-      getTodosQuery = `
-            SELECT
-                *
-            FROM 
-                todo
-            WHERE
-                todo LIKE '%${search_q}%'
-                AND category = '${category}'
-                AND status = '${status}';`;
+      if (validCategoryAndStatus(category, status) === true) {
+        getTodosQuery = `
+                    SELECT
+                        *
+                    FROM 
+                        todo
+                    WHERE
+                        todo LIKE '%${search_q}%'
+                        AND category = '${category}'
+                        AND status = '${status}';`;
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
     case hasCategoryProperty(request.query):
-      getTodosQuery = `
+      if (validCategory(category) === true) {
+        getTodosQuery = `
             SELECT
                 *
             FROM 
@@ -132,10 +217,15 @@ app.get("/todos/", async (request, response) => {
             WHERE
                 todo LIKE '%${search_q}%'
                 AND category = '${category}';`;
-      getColumn = "Category";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
+
       break;
     case hasCategoryAndPriorityProperties(request.query):
-      getTodosQuery = `
+      if (validCategoryAndPriority(category, priority) === true) {
+        getTodosQuery = `
             SELECT
                 *
             FROM 
@@ -144,6 +234,11 @@ app.get("/todos/", async (request, response) => {
                 todo LIKE '%${search_q}%'
                 AND priority = '${priority}'
                 AND category = '${category}';`;
+
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
     default:
       getTodosQuery = `
@@ -158,12 +253,15 @@ app.get("/todos/", async (request, response) => {
 
   if (validValuesEntered === true) {
     const data = await db.all(getTodosQuery);
-    response.send(data);
-  } else if (validValuesEntered === false) {
+    const RespObjArr = data.forEach(convertDbObjToResObj(eachList));
+    response.send(RespObjArr);
+  } else {
     response.status(400);
-    response.send(`Invalid Todo ${getColumn}`);
+    response.send(`Invalid Todo ${invalid_column}`);
   }
 });
+
+/*
 
 //API 2
 
@@ -290,5 +388,7 @@ app.delete("/todos/:todoId/", async (request, response) => {
   await db.run(deleteTodoQuery);
   response.send("Todo Deleted");
 });
+
+*/
 
 module.exports = app;
