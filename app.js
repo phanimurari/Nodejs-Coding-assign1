@@ -248,20 +248,19 @@ app.get("/todos/", async (request, response) => {
                 todo
             WHERE
                 todo LIKE '%${search_q}%'`;
+      validValuesEntered = true;
       break;
   }
 
   if (validValuesEntered === true) {
     const data = await db.all(getTodosQuery);
-    const RespObjArr = data.forEach(convertDbObjToResObj(eachList));
+    const RespObjArr = data.map((eachList) => convertDbObjToResObj(eachList));
     response.send(RespObjArr);
   } else {
     response.status(400);
     response.send(`Invalid Todo ${invalid_column}`);
   }
 });
-
-/*
 
 //API 2
 
@@ -272,7 +271,8 @@ app.get("/todos/:todoId", async (request, response) => {
     SELECT * FROM todo WHERE id = '${todoId}';`;
 
   const todo = await db.get(getTodoQuery);
-  response.send(todo);
+  const respObj = convertDbObjToResObj(todo);
+  response.send(respObj);
 });
 
 //API 3
@@ -287,8 +287,12 @@ app.get("/agenda/", async (request, response) => {
 
   const dateTodo = await db.all(getTodoOfDateQuery);
   if (dateTodo !== undefined) {
-    response.send(dateTodo);
+    const respTodoObjArr = dateTodo.map((eachTodo) =>
+      convertDbObjToResObj(eachTodo)
+    );
+    response.send(respTodoObjArr);
   } else {
+    response.status(400);
     response.send("Invalid Due Date");
   }
 });
@@ -374,6 +378,7 @@ app.put("/todos/:todoId/", async (request, response) => {
   response.send(`${updateColumn} Updated`);
 });
 
+/*
 //API 6
 
 app.delete("/todos/:todoId/", async (request, response) => {
