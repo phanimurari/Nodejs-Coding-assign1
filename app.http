@@ -34,7 +34,7 @@ GET http://localhost:3000/todos/1
 ###
 
 //API 3
-GET http://localhost:3000/agenda/?date=2021-12-12
+GET http://localhost:3000/agenda/?date=2021/2
 ###
 
 //API 4
@@ -43,12 +43,12 @@ POST http://localhost:3000/todos/
 Content-Type: application/json
 
 {
-  "id": 6,
-  "todo": "Finalize event theme",
+  "id": 7,
+  "todo": "Go buy eggs",
   "priority": "LOW",
   "status": "TO DO",
   "category": "HOME",
-  "dueDate": "2021-02-22"
+  "dueDate": "2021-02-25"
 }
 ###
 
@@ -62,7 +62,7 @@ Content-Type: application/json
 {
   "status": "DONE"
 }
-
+###
 //Scenerio 2
 
 PUT http://localhost:3000/todos/4
@@ -71,6 +71,7 @@ Content-Type: application/json
 {
   "priority": "HIGH"
 }
+###
 //Scenerio 3
 
 PUT http://localhost:3000/todos/4
@@ -79,6 +80,7 @@ Content-Type: application/json
 {
   "todo": "Clean the garden"
 }
+###
 //Scenerio 4
 
 PUT http://localhost:3000/todos/4
@@ -87,6 +89,7 @@ Content-Type: application/json
 {
   "category": "LEARNING"
 }
+###
 //Scenerio 5
 
 PUT http://localhost:3000/todos/4
