@@ -1,4 +1,5 @@
 var format = require("date-fns/format");
+var isValid = require("date-fns/isValid");
 
 const express = require("express");
 const path = require("path");
@@ -56,6 +57,18 @@ const validCategory = (category) => {
     return true;
   } else {
     invalid_column = "Category";
+    return false;
+  }
+};
+
+const validDueDate = (dueDate) => {
+  //   let parsedDate = parseISO(dueDate);
+  //   console.log(typeof dueDate);
+  let result = isValid(dueDate);
+  if (result === true) {
+    return true;
+  } else {
+    invalid_column = "Due Date";
     return false;
   }
 };
@@ -302,7 +315,29 @@ app.get("/agenda/", async (request, response) => {
 app.post("/todos", async (request, response) => {
   const { id, todo, priority, status, category, dueDate } = request.body;
 
-  const postTodoQuery = `
+  let postTodoQuery = "";
+  let validValuesEntered;
+
+  if (validStatus(status) === true) {
+    if (validPriority(priority) === true) {
+      if (validCategory(category) === true) {
+        if (validDueDate(dueDate) === true) {
+          validValuesEntered = true;
+        } else {
+          validValuesEntered = false;
+        }
+      } else {
+        validValuesEntered = false;
+      }
+    } else {
+      validValuesEntered = false;
+    }
+  } else {
+    validValuesEntered = false;
+  }
+
+  if (validValuesEntered === true) {
+    const postTodoQuery = `
     INSERT INTO 
         todo(id, todo, priority, status, category, due_date)
     VALUES
@@ -315,8 +350,12 @@ app.post("/todos", async (request, response) => {
             '${dueDate}'
         );`;
 
-  await db.run(postTodoQuery);
-  response.send("Todo Successfully Added");
+    await db.run(postTodoQuery);
+    response.send("Todo Successfully Added");
+  } else {
+    response.status(400);
+    response.send(`Invalid Todo ${invalid_column}`);
+  }
 });
 
 //API 5
