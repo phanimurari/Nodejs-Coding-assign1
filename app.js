@@ -364,26 +364,52 @@ app.put("/todos/:todoId/", async (request, response) => {
   const { todoId } = request.params;
   let updateColumn = "";
   const requestBody = request.body;
+  const { status, priority, category, dueDate } = request.body;
 
   switch (true) {
     case requestBody.status !== undefined:
-      updateColumn = "Status";
+      if (validStatus(status) === true) {
+        updateColumn = "Status";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
-    case requestBody.priority !== undefined:
-      updateColumn = "Priority";
-      break;
+
     case requestBody.todo !== undefined:
       updateColumn = "Todo";
+      validValuesEntered = true;
       break;
+
+    case requestBody.priority !== undefined:
+      if (validPriority(priority) === true) {
+        updateColumn = "Priority";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
+      break;
+
     case requestBody.category !== undefined:
-      updateColumn = "Category";
+      if (validCategory(category) === true) {
+        updateColumn = "Category";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
     case requestBody.dueDate !== undefined:
-      updateColumn = "Due Date";
+      if (validDueDate(dueDate) === true) {
+        updateColumn = "Due Date";
+        validValuesEntered = true;
+      } else {
+        validValuesEntered = false;
+      }
       break;
   }
 
-  const previousTodoQuery = `
+  if (validValuesEntered === true) {
+    const previousTodoQuery = `
     SELECT
       *
     FROM
@@ -391,17 +417,17 @@ app.put("/todos/:todoId/", async (request, response) => {
     WHERE
       id = ${todoId};`;
 
-  const previousTodo = await db.get(previousTodoQuery);
+    const previousTodo = await db.get(previousTodoQuery);
 
-  const {
-    todo = previousTodo.todo,
-    priority = previousTodo.priority,
-    status = previousTodo.status,
-    category = previousTodo.category,
-    dueDate = previousTodo.due_date,
-  } = request.body;
+    const {
+      todo = previousTodo.todo,
+      priority = previousTodo.priority,
+      status = previousTodo.status,
+      category = previousTodo.category,
+      dueDate = previousTodo.due_date,
+    } = request.body;
 
-  const updateTodoQuery = `
+    const updateTodoQuery = `
     UPDATE
         todo
     SET 
@@ -413,11 +439,14 @@ app.put("/todos/:todoId/", async (request, response) => {
     WHERE 
         id = ${todoId};`;
 
-  await db.run(updateTodoQuery);
-  response.send(`${updateColumn} Updated`);
+    await db.run(updateTodoQuery);
+    response.send(`${updateColumn} Updated`);
+  } else {
+    response.status(400);
+    response.send(`Invalid Todo ${invalid_column}`);
+  }
 });
 
-/*
 //API 6
 
 app.delete("/todos/:todoId/", async (request, response) => {
@@ -432,7 +461,5 @@ app.delete("/todos/:todoId/", async (request, response) => {
   await db.run(deleteTodoQuery);
   response.send("Todo Deleted");
 });
-
-*/
 
 module.exports = app;
